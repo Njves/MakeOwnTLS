@@ -88,11 +88,14 @@ async function processForm() {
     const response = await fetch('/login', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Access-Control-Expose-Headers': 'Location'
         },
         body: JSON.stringify(data)
     })
-    const responseData = await response.json()
+    const responseData = await response
+
+    window.location.href = responseData.url;
 
 
 }

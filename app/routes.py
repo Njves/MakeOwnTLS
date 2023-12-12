@@ -1,5 +1,5 @@
 import flask
-from flask import render_template, jsonify, request, redirect, url_for
+from flask import render_template, jsonify, request, redirect, url_for, make_response
 
 from app import diffi_helman, db
 from app.diffi_helman import hash_key
@@ -77,6 +77,8 @@ def login():
     Ручка логина
     """
     if request.method == 'POST':
+        if flask.session.get(app.config['USER_FIELD']):
+            return redirect(url_for('index'))
         user_login = request.json['username']
         password = request.json['password']
         iv = request.json['iv']
@@ -86,16 +88,19 @@ def login():
             username = diffi_helman.decrypt(user_login, key_hash, iv)
             password = diffi_helman.decrypt(password, key_hash, iv)
             user = User.query.filter_by(username=username).first()
-
             if not user:
                 return redirect(url_for('login'))
             user = User.query.filter_by(username=username).first()
             if not user.check_password(password):
                 return redirect(url_for('login'))
-            flask.session['user_id'] = user.id
+            flask.session[app.config['USER_FIELD']] = user.id
             return jsonify({'user': user.username})
     return render_template('login.html')
 
+@app.route('/logout', methods=['GET'])
+def logout():
+    flask.session.pop(app.config['USER_FIELD'])
+    return redirect(url_for('index'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():

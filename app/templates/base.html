@@ -21,6 +21,9 @@
     <a class="m-1" href="{{ url_for('add') }}">Добавить кошечку</a>
     <a class="m-1" href="{{ url_for('login') }}">Войти на сайт</a>
     <a class="m-1" href="{{ url_for('register') }}">Зарегестрироваться</a>
+    {% if user %}
+    <a class="m-1" href="{{ url_for('logout') }}">Выйти</a>
+    {% endif %}
 </div>
 <script src="https://peterolson.github.io/BigInteger.js/BigInteger.min.js"></script>
 
