@@ -1,0 +1,31 @@
+{%  extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Cat List</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Breed</th>
+                <th>Link</th>
+                <th>Photo Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cat in cats %}
+                <tr>
+                    <td>{{ cat.id }}</td>
+                    <td>{{ cat.name }}</td>
+                    <td>{{ cat.description }}</td>
+                    <td>{{ cat.breed }}</td>
+                    <td><a href="{{ cat.link }}">{{ cat.link }}</a></td>
+                    <td>{{ cat.photo_link }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{%  endblock %}

@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block content %}
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Войти</div>
+                    <div class="card-body">
+                        {% include "flash.html" %}
+                        <form method="POST" action="{{ url_for('login') }}" onsubmit="processForm(event)">
+                            <div class="form-group">
+                                <label for="username">Username:</label>
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Введите имя пользователя">
+                            </div>
+                            <div class="form-group">
+                                <label for="password">Password:</label>
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Введите пароль">
+                            </div>
+                            <input id="secret" type="hidden" name="secret-key" value="">
+                            <button type="submit" class="btn btn-primary mt-2">Войти</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        B = 0
+        S_Client = 0
+        function getRandomArbitrary(min, max) {
+            return bigInt(Math.random() * (max - min) + min);
+        }
+        let random = getRandomArbitrary(Math.pow(10, 15), Math.pow(10,16)-1)
+        a = random
+        function fetchData() {
+            const xhr = new XMLHttpRequest();
+            const url = '/get';
+
+            xhr.open('GET', url, true);
+
+            // Обработчик события загрузки
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    const data = JSON.parse(xhr.responseText);
+                    const g = bigInt(parseInt(data.g));
+                    const p = bigInt(parseInt(data.p));
+
+                    console.log(typeof g)
+                    const requestBody = JSON.stringify({A: g.modPow(a, p)});
+
+                    xhr.open('POST', '/send_key', false);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+
+                    // Обработчик события загрузки
+                    xhr.onload = function () {
+                        if (xhr.status === 200) {
+                            const responseData = JSON.parse(xhr.responseText);
+                            B = bigInt(parseInt(responseData.B));
+
+                            S_Client = B.modPow(a, p)
+                            console
+                            document.getElementById('secret').value = S_Client
+                            console.log(`B = ${B}, S_Client = ${S_Client}`);
+                        } else {
+                            console.error(`Ошибка при отправке данных. Статус: ${xhr.status}`);
+                        }
+                    };
+
+                    // Обработчик сетевых ошибок
+                    xhr.onerror = function () {
+                        console.error('Произошла сетевая ошибка');
+                    };
+
+                    // Отправляем запрос
+                    xhr.send(requestBody);
+
+                    console.log(`Получены значения g=${g} и p=${p}`);
+                } else {
+                    console.error(`Ошибка при получении данных. Статус: ${xhr.status}`);
+                }
+            };
+
+            // Обработчик сетевых ошибок
+            xhr.onerror = function () {
+                console.error('Произошла сетевая ошибка');
+            };
+
+            // Отправляем запрос
+            xhr.send();
+        }
+        fetchData()
+    </script>
+{% endblock %}
