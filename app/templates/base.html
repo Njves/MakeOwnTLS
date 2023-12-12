@@ -16,6 +16,7 @@
 </head>
 <body>
 {{ user }}
+{% include "flash.html" %}
 <div class="navigation">
     <a class="m-1" href="{{ url_for('index') }}">Посмотреть кошечек</a>
     <a class="m-1" href="{{ url_for('add') }}">Добавить кошечку</a>

@@ -160,7 +160,7 @@ async function register(event) {
         },
         body: JSON.stringify(data)
     })
-    const newdata = await response.json()
+    const responseData = await response
 
-    return false
+    window.location.href = responseData.url;
 }
