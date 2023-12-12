@@ -8,7 +8,7 @@
                     <div class="card-header">Войти</div>
                     <div class="card-body">
                         {% include "flash.html" %}
-                        <form method="POST" action="{{ url_for('login') }}" onsubmit="processForm(event)">
+                        <form method="POST" onsubmit="processForm(event)">
                             <div class="form-group">
                                 <label for="username">Username:</label>
                                 <input type="text" class="form-control" id="username" name="username" placeholder="Введите имя пользователя">
@@ -17,7 +17,6 @@
                                 <label for="password">Password:</label>
                                 <input type="password" class="form-control" id="password" name="password" placeholder="Введите пароль">
                             </div>
-                            <input id="secret" type="hidden" name="secret-key" value="">
                             <button type="submit" class="btn btn-primary mt-2">Войти</button>
                         </form>
                     </div>
@@ -43,8 +42,9 @@
             xhr.onload = function () {
                 if (xhr.status === 200) {
                     const data = JSON.parse(xhr.responseText);
-                    const g = bigInt(parseInt(data.g));
-                    const p = bigInt(parseInt(data.p));
+                    console.log(data)
+                    const g = bigInt(data.g);
+                    const p = bigInt(data.p);
 
                     console.log(typeof g)
                     const requestBody = JSON.stringify({A: g.modPow(a, p)});
@@ -59,8 +59,6 @@
                             B = bigInt(parseInt(responseData.B));
 
                             S_Client = B.modPow(a, p)
-                            console
-                            document.getElementById('secret').value = S_Client
                             console.log(`B = ${B}, S_Client = ${S_Client}`);
                         } else {
                             console.error(`Ошибка при отправке данных. Статус: ${xhr.status}`);
@@ -90,5 +88,70 @@
             xhr.send();
         }
         fetchData()
+        async function processForm() {
+            event.preventDefault()
+            username = 'Egor'
+            password = '123456'
+
+            let {key, iv} = await convertKey(S_Client);
+            console.log(key)
+            let encryptedName = await encrypt(username, key, iv);
+            let encryptedPassword = await encrypt(password, key, iv);
+            let data = {
+                iv: btoa(String.fromCharCode.apply(null, iv)),
+                username: encryptedName,
+                password: encryptedPassword
+            };
+            console.log(JSON.stringify(data))
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            const newdata = await response.json()
+
+            return false
+        }
+        async function convertKey(secretKey){
+            const encoder = new TextEncoder();
+            const secretKeyBuffer = encoder.encode(secretKey);
+            const hashedKey = await window.crypto.subtle.digest('SHA-256', secretKeyBuffer);
+
+            // Import the hashed key as a CryptoKey
+            const key = await window.crypto.subtle.importKey(
+                'raw',
+                hashedKey,
+                'AES-GCM',
+                false,
+                ['encrypt', 'decrypt']
+            );
+
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            console.log(key)
+            return {key, iv};
+        }
+        async function encrypt(text, key, iv) {
+            // The data to encrypt
+            const data = new TextEncoder().encode(text);
+
+            // Encrypt the data
+            const encryptedData = await window.crypto.subtle.encrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv
+                },
+                key,
+                data
+            );
+
+            // Convert the encrypted data (including the tag) to a Base64 string
+            const encryptedDataArray = new Uint8Array(encryptedData);
+            console.log(encryptedDataArray)
+            return btoa(String.fromCharCode.apply(null, encryptedDataArray));
+        }
+
+
     </script>
 {% endblock %}
