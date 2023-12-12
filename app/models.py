@@ -12,6 +12,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow, comment='date of registation')
     last_seen = db.Column(db.DateTime, default=datetime.utcnow, comment='last seen user in online')
+    role_id = db.Column('role_id', db.Integer, db.ForeignKey('role.id', ondelete='CASCADE'))
+    role = db.relationship('Role', backref='owners')
 
     def __repr__(self) -> str:
         return f'User {self.id}, Username: {self.username}, email: {self.email}, date: {self.date},' \

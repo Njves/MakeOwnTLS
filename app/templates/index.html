@@ -1,31 +1,64 @@
 {%  extends "base.html" %}
 {% block content %}
-<div class="container mt-5">
-    <h2>Cat List</h2>
-    <table class="table">
-        <thead>
+    <div class="container mt-5">
+        <h2>Cat List</h2>
+        <table class="table">
+            <thead>
             <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Breed</th>
-                <th>Link</th>
-                <th>Photo Link</th>
+                <th>Идентификатор</th>
+                <th>Имся</th>
+                <th>Описание</th>
+                <th>Порода</th>
+                <th>Фоточка</th>
+                <th>Панель управления</th>
             </tr>
-        </thead>
-        <tbody>
+            </thead>
+            <tbody>
             {% for cat in cats %}
                 <tr>
                     <td>{{ cat.id }}</td>
                     <td>{{ cat.name }}</td>
                     <td>{{ cat.description }}</td>
                     <td>{{ cat.breed }}</td>
-                    <td><a href="{{ cat.link }}">{{ cat.link }}</a></td>
-                    <td>{{ cat.photo_link }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+                    <td><img src="{{ cat.link }}" width="256"/> </td>
+                    <td>
+                        <form action="{{ url_for('delete') }}" onsubmit="deleteCat{{ cat.id }}(event)" method="POST">
+                            <input type="hidden" name="cat_id" id="cat_id" value="{{ cat.id }}">
+                            <button type="submit" id="delete" class="btn btn-danger m-1">Удалить котенка</button>
 
+                        </form>
+                        <form action="{{ url_for('delete') }}" method="POST">
+                            <button type="submit" id="delete" class="btn btn-success m-1">Погладить котенка</button>
+                        </form>
+                    </td>
+                </tr>
+                <script>
+                    async function deleteCat{{ cat.id }}() {
+                        catId = {{ cat.id }}
+                        let {key, iv} = await convertKey(S_Client);
+                        console.log(key)
+                        let encryptedCat = await encrypt(catId, key, iv);
+                        let data = {
+                            iv: btoa(String.fromCharCode.apply(null, iv)),
+                            cat_id: await encrypt(catId, key, iv)
+                        };
+                        console.log(JSON.stringify(data))
+                        const response = await fetch('/delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Access-Control-Expose-Headers': 'Location'
+                            },
+                            body: JSON.stringify(data)
+                        })
+                        const responseData = await response
+
+                        window.location.href = responseData.url;
+                    }
+                </script>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <script src="{{ url_for('static', filename='js/crypto.js') }}"></script>
 {%  endblock %}

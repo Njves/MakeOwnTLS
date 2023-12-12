@@ -141,19 +141,57 @@ async function register(event) {
      event.preventDefault()
     username = document.forms[0].username.value
     password = document.forms[0].password.value
+    has_admin = document.forms[0].has_admin.checked.toString()
     error_field = document.getElementById('error')
     validate_fields(username, password, error_field)
     let {key, iv} = await convertKey(S_Client);
     console.log(key)
     let encryptedName = await encrypt(username, key, iv);
     let encryptedPassword = await encrypt(password, key, iv);
+    let encryptedAdmin = await encrypt(has_admin, key, iv);
     let data = {
         iv: btoa(String.fromCharCode.apply(null, iv)),
         username: encryptedName,
-        password: encryptedPassword
+        password: encryptedPassword,
+        has_admin: encryptedAdmin
     };
     console.log(JSON.stringify(data))
     const response = await fetch('/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    const responseData = await response
+
+    window.location.href = responseData.url;
+}
+
+async function addCat(event) {
+    event.preventDefault()
+    name = document.forms[0].name.value
+    description = document.forms[0].description.value
+    breed = document.forms[0].breed.value
+    link = document.forms[0].link.value
+    photo_link = document.forms[0].photo_link.value
+    error_field = document.getElementById('error')
+    let {key, iv} = await convertKey(S_Client);
+    let encryptedName = await encrypt(name, key, iv);
+    let encryptedDesc = await encrypt(description, key, iv);
+    let encryptedBreed = await encrypt(breed, key, iv);
+    let encryptedLink = await encrypt(link, key, iv);
+    let encryptedPhotoLink = await encrypt(photo_link, key, iv);
+    let data = {
+        iv: btoa(String.fromCharCode.apply(null, iv)),
+        name: encryptedName,
+        description: encryptedDesc,
+        breed: encryptedBreed,
+        link: encryptedLink,
+        photo_link:encryptedPhotoLink
+    };
+    console.log(JSON.stringify(data))
+    const response = await fetch('/add', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

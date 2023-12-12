@@ -24,5 +24,4 @@ migrate.init_app(app, db,render_as_batch=True)
 db.init_app(app)
 admin_app.init_app(app)
 
-
 from app import models, admin, routes, diffi_helman
