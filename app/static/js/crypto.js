@@ -1,0 +1,163 @@
+B = 0
+S_Client = 0
+function getRandomArbitrary(min, max) {
+    return bigInt(parseInt(Math.random() * (max - min) + min));
+}
+let random = getRandomArbitrary(Math.pow(10, 15), Math.pow(10,16)-1)
+function validate_fields(username, password, error_field) {
+    if(!username) {
+        error_field.innerText = 'Вы не ввели логин'
+    }
+    if(!password) {
+        error_field.innerText = 'Вы не ввели пароль'
+    }
+}
+a = random
+function fetchData() {
+    const xhr = new XMLHttpRequest();
+    const url = '/get';
+
+    xhr.open('GET', url, true);
+
+    // Обработчик события загрузки
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+            console.log(data)
+            const g = bigInt(data.g);
+            const p = bigInt(data.p);
+
+            console.log(typeof g)
+            const requestBody = JSON.stringify({A: g.modPow(a, p)});
+
+            xhr.open('POST', '/send_key', false);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+
+            // Обработчик события загрузки
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    const responseData = JSON.parse(xhr.responseText);
+                    B = bigInt(parseInt(responseData.B));
+
+                    S_Client = B.modPow(a, p)
+                    console.log(`B = ${B}, S_Client = ${S_Client}`);
+                } else {
+                    console.error(`Ошибка при отправке данных. Статус: ${xhr.status}`);
+                }
+            };
+
+            // Обработчик сетевых ошибок
+            xhr.onerror = function () {
+                console.error('Произошла сетевая ошибка');
+            };
+
+            // Отправляем запрос
+            xhr.send(requestBody);
+
+            console.log(`Получены значения g=${g} и p=${p}`);
+        } else {
+            console.error(`Ошибка при получении данных. Статус: ${xhr.status}`);
+        }
+    };
+
+    // Обработчик сетевых ошибок
+    xhr.onerror = function () {
+        console.error('Произошла сетевая ошибка');
+    };
+
+    // Отправляем запрос
+    xhr.send();
+}
+fetchData()
+async function processForm() {
+    event.preventDefault()
+    username = document.forms[0].username.value
+    password = document.forms[0].password.value
+    error_field = document.getElementById('error')
+    validate_fields(username, password, error_field)
+    let {key, iv} = await convertKey(S_Client);
+    console.log(key)
+    let encryptedName = await encrypt(username, key, iv);
+    let encryptedPassword = await encrypt(password, key, iv);
+    let data = {
+        iv: btoa(String.fromCharCode.apply(null, iv)),
+        username: encryptedName,
+        password: encryptedPassword
+    };
+    console.log(JSON.stringify(data))
+    const response = await fetch('/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    const responseData = await response.json()
+
+
+}
+async function convertKey(secretKey){
+    const encoder = new TextEncoder();
+    const secretKeyBuffer = encoder.encode(secretKey);
+    const hashedKey = await window.crypto.subtle.digest('SHA-256', secretKeyBuffer);
+
+    // Import the hashed key as a CryptoKey
+    const key = await window.crypto.subtle.importKey(
+        'raw',
+        hashedKey,
+        'AES-GCM',
+        false,
+        ['encrypt', 'decrypt']
+    );
+
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    console.log(key)
+    return {key, iv};
+}
+async function encrypt(text, key, iv) {
+    // The data to encrypt
+    const data = new TextEncoder().encode(text);
+
+    // Encrypt the data
+    const encryptedData = await window.crypto.subtle.encrypt(
+        {
+            name: 'AES-GCM',
+            iv: iv
+        },
+        key,
+        data
+    );
+
+    // Convert the encrypted data (including the tag) to a Base64 string
+    const encryptedDataArray = new Uint8Array(encryptedData);
+    console.log(encryptedDataArray)
+    return btoa(String.fromCharCode.apply(null, encryptedDataArray));
+}
+
+async function register(event) {
+     event.preventDefault()
+    username = document.forms[0].username.value
+    password = document.forms[0].password.value
+    error_field = document.getElementById('error')
+    validate_fields(username, password, error_field)
+    let {key, iv} = await convertKey(S_Client);
+    console.log(key)
+    let encryptedName = await encrypt(username, key, iv);
+    let encryptedPassword = await encrypt(password, key, iv);
+    let data = {
+        iv: btoa(String.fromCharCode.apply(null, iv)),
+        username: encryptedName,
+        password: encryptedPassword
+    };
+    console.log(JSON.stringify(data))
+    const response = await fetch('/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    const newdata = await response.json()
+
+    return false
+}

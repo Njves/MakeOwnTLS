@@ -6,8 +6,9 @@
             <div class="card">
                 <div class="card-header">Регистрация</div>
                 <div class="card-body">
+                    <span class="text-danger" id="error"></span>
                     {% include "flash.html" %}
-                    <form method="POST" action="{{ url_for('register') }}">
+                    <form method="POST" action="{{ url_for('register') }}" onsubmit="register(event)">
                         <div class="form-group">
                             <label for="username">Username:</label>
                             <input type="text" class="form-control" name="username" id="username" placeholder="Введите имя пользователя">
@@ -24,5 +25,5 @@
         </div>
     </div>
 </div>
-
+<script src="{{ url_for('static', filename='js/crypto.js') }}"></script>
 {% endblock %}
