@@ -1,21 +1,26 @@
 import flask
-from flask import render_template, jsonify, request, redirect, url_for, make_response, flash, Response
+from flask import render_template, jsonify, request, redirect, url_for, make_response, Response
+from werkzeug.local import LocalProxy
 
 from app import diffi_helman, db
 from app.diffi_helman import hash_key
 from app.models import Cat, User, Role
 from main import app
 
+current_user = LocalProxy(lambda: User.query.filter_by(id=flask.session.get('user_id')).first())
 
 @app.before_request
 def make_session_permanent():
-
+    global current_user
     if not Role.query.filter_by(name='Пользователь').first():
         role = Role(name='Пользователь')
         role1 = Role(name='Админ')
         db.session.add(role)
         db.session.add(role1)
         db.session.commit()
+    current_user = LocalProxy(lambda: User.query.filter_by(id=flask.session.get('user_id')).first())
+    print(current_user)
+    flask.session.get('user_id')
     flask.session.permanent = True
 
 @app.route('/get', methods=['GET'])
@@ -36,8 +41,7 @@ def inject_user():
     Внедряет поле пользователя в Jinja если пользователь авторизован
     :return:
     """
-    user = User.query.filter_by(id=flask.session.get('user_id')).first()
-    return dict(user=user if user else False)
+    return dict(user=current_user if current_user else False)
 
 
 @app.route('/send_key', methods=['POST'])
@@ -72,7 +76,6 @@ def add():
     Форма добавления котят
     """
     if not flask.session.get(app.config['USER_FIELD']):
-        flash('Авторизуйтесь')
         return redirect(url_for('login'))
     return render_template('insert.html')
 
@@ -111,6 +114,8 @@ def login():
     """
     Ручка логина
     """
+    if current_user:
+        return redirect(url_for('index'))
     if request.method == 'POST':
         if not request.json:
             return redirect(url_for('register'))
@@ -121,19 +126,18 @@ def login():
         iv = request.json['iv']
         key = flask.session['s_server']
         key_hash = hash_key(key)
+        print(request.json)
         if user_login and password and iv:
             username = diffi_helman.decrypt(user_login, key_hash, iv)
             password = diffi_helman.decrypt(password, key_hash, iv)
             user = User.query.filter_by(username=username).first()
-            if not user:
-                flash('Такого пользователя не существует')
-                return redirect(url_for('login'))
-            user = User.query.filter_by(username=username).first()
+            if user is None:
+                return Response(status=404)
             if not user.check_password(password):
-                flash('Неверный пароль')
-                return redirect(url_for('login'))
+                return Response(status=401)
             flask.session[app.config['USER_FIELD']] = user.id
-            return jsonify({'user': user.username})
+            print(flask.session[app.config['USER_FIELD']])
+            return redirect(url_for('index'))
     return render_template('login.html')
 
 @app.route('/logout', methods=['GET'])
@@ -146,6 +150,8 @@ def register():
     """
     Ручка регистрации
     """
+    if current_user:
+        return redirect(url_for('index'))
     print(request.json)
     if request.method == 'POST':
         if not request.json:
@@ -156,22 +162,23 @@ def register():
         iv = request.json['iv']
         key = flask.session['s_server']
         key_hash = hash_key(key)
+        print(request.json)
         if user_login and password and iv:
             username = diffi_helman.decrypt(user_login, key_hash, iv)
             password = diffi_helman.decrypt(password, key_hash, iv)
             has_admin = diffi_helman.decrypt(admin, key_hash, iv)
             if User.query.filter_by(username=username).first():
-                flash('Пользователь уже существует')
-                return redirect(url_for('register'))
+                return Response(status=406)
             user = User(username=username)
             if has_admin == 'true':
                 user.role = Role.query.filter_by(name='Админ').first()
-            user.role = Role.query.filter_by(name='Пользователь').first()
+            else:
+                user.role = Role.query.filter_by(name='Пользователь').first()
+
             user.set_password(password)
-            flask.session['user_id'] = user.id
-            flash('Вы зарегестрировались')
             db.session.add(user)
             db.session.commit()
+            flask.session[app.config['USER_FIELD']] = User.query.filter_by(username=username).first().id
             return redirect(url_for('index'))
     return render_template('register.html')
 
@@ -179,7 +186,10 @@ def register():
 def delete():
     if not request.json:
         return redirect(url_for('index'))
+    if not current_user:
+        return redirect(url_for('login'))
     user = User.query.filter_by(id=flask.session.get('user_id')).first()
+    print(user.role)
     if user.role.name != 'Админ':
         return redirect(url_for('index'))
     iv = request.json['iv']

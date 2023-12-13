@@ -1,5 +1,8 @@
 B = 0
-S_Client = 0
+key = localStorage.getItem('key')
+if (key) {
+    S_Client = key
+}
 function getRandomArbitrary(min, max) {
     return bigInt(parseInt(Math.random() * (max - min) + min));
 }
@@ -40,6 +43,7 @@ function fetchData() {
                     B = bigInt(parseInt(responseData.B));
 
                     S_Client = B.modPow(a, p)
+                    localStorage.setItem('key', S_Client)
                     console.log(`B = ${B}, S_Client = ${S_Client}`);
                 } else {
                     console.error(`Ошибка при отправке данных. Статус: ${xhr.status}`);
@@ -68,7 +72,9 @@ function fetchData() {
     // Отправляем запрос
     xhr.send();
 }
-fetchData()
+if(!key) {
+    fetchData()
+}
 async function processForm() {
     event.preventDefault()
     username = document.forms[0].username.value
@@ -89,13 +95,11 @@ async function processForm() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Expose-Headers': 'Location'
-        },
+            },
         body: JSON.stringify(data)
     })
     const responseData = await response
-
-    window.location.href = responseData.url;
+    showError(error_field, responseData.status, responseData.url)
 
 
 }
@@ -163,8 +167,7 @@ async function register(event) {
         body: JSON.stringify(data)
     })
     const responseData = await response
-
-    window.location.href = responseData.url;
+    showError(error_field, responseData.status, responseData.url)
 }
 
 async function addCat(event) {
@@ -198,5 +201,24 @@ async function addCat(event) {
         body: JSON.stringify(data)
     })
     const responseData = await response
+
     window.location.href = responseData.url;
+}
+
+function showError(error_field, status, url) {
+    if(status === 200) {
+        window.location.href = url;
+    }
+    if(status === 403) {
+        window.location.href = url;
+    }
+    if(status === 406) {
+        error_field.innerText = 'Такой пользователь уже существует'
+    }
+    if(status === 404) {
+        error_field.innerText = 'Такого пользователя не существует'
+    }
+    if(status === 401) {
+        error_field.innerText = 'Неверный пароль'
+    }
 }
