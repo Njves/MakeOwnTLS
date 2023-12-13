@@ -9,13 +9,13 @@ from main import app
 
 @app.before_request
 def make_session_permanent():
+
     if not Role.query.filter_by(name='Пользователь').first():
         role = Role(name='Пользователь')
         role1 = Role(name='Админ')
         db.session.add(role)
         db.session.add(role1)
         db.session.commit()
-
     flask.session.permanent = True
 
 @app.route('/get', methods=['GET'])

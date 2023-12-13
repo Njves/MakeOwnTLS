@@ -130,7 +130,6 @@ async function encrypt(text, key, iv) {
         key,
         data
     );
-
     // Convert the encrypted data (including the tag) to a Base64 string
     const encryptedDataArray = new Uint8Array(encryptedData);
     console.log(encryptedDataArray)
@@ -138,7 +137,7 @@ async function encrypt(text, key, iv) {
 }
 
 async function register(event) {
-     event.preventDefault()
+    event.preventDefault()
     username = document.forms[0].username.value
     password = document.forms[0].password.value
     has_admin = document.forms[0].has_admin.checked.toString()
@@ -199,6 +198,5 @@ async function addCat(event) {
         body: JSON.stringify(data)
     })
     const responseData = await response
-
     window.location.href = responseData.url;
 }
