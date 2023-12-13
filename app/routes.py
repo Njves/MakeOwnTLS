@@ -142,7 +142,8 @@ def login():
 
 @app.route('/logout', methods=['GET'])
 def logout():
-    flask.session.pop(app.config['USER_FIELD'])
+    if flask.session.get(app.config['USER_FIELD']):
+        flask.session.pop(app.config['USER_FIELD'])
     return redirect(url_for('index'))
 
 @app.route('/register', methods=['GET', 'POST'])
