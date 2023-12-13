@@ -1,5 +1,7 @@
 {%  extends "base.html" %}
 {% block content %}
+    <audio id="meow" src="{{ url_for('static', filename='meow.mp3')}}">
+    </audio>
     <div class="container mt-5">
         <h2>Cat List</h2>
         <table class="table">
@@ -27,15 +29,14 @@
                             <button type="submit" id="delete" class="btn btn-danger m-1">Удалить котенка</button>
 
                         </form>
-                        <form action="{{ url_for('delete') }}" method="POST">
-                            <button type="submit" id="delete" class="btn btn-success m-1">Погладить котенка</button>
-                        </form>
+                        <button onclick="click(event)" class="btn btn-success m-1">Погладить котенка</button>
+
                     </td>
                 </tr>
                 <script>
                     async function deleteCat{{ cat.id }}() {
                         catId = {{ cat.id }}
-                        let {key, iv} = await convertKey(S_Client);
+                            let {key, iv} = await convertKey(S_Client);
                         console.log(key)
                         let encryptedCat = await encrypt(catId, key, iv);
                         let data = {
@@ -60,5 +61,13 @@
             </tbody>
         </table>
     </div>
+    <script>
+        function click(event) {
+
+            var audio = document.getElementById('meow')
+            audio.play();
+
+        }
+    </script>
     <script src="{{ url_for('static', filename='js/crypto.js') }}"></script>
 {%  endblock %}

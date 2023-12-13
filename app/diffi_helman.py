@@ -48,6 +48,7 @@ def hash_key(secret_key):
     return digest.finalize()
 
 
+
 def encrypt(text, key):
     # Convert the text to bytes
     data = text.encode()

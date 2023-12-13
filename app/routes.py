@@ -19,7 +19,7 @@ def make_session_permanent():
         db.session.add(role1)
         db.session.commit()
     current_user = LocalProxy(lambda: User.query.filter_by(id=flask.session.get('user_id')).first())
-    print(current_user)
+
     flask.session.get('user_id')
     flask.session.permanent = True
 
@@ -77,6 +77,8 @@ def add():
     """
     if not flask.session.get(app.config['USER_FIELD']):
         return redirect(url_for('login'))
+    cipher, iv = diffi_helman.encrypt(render_template('insert.html'), hash_key(flask.session['s_server']))
+
     return render_template('insert.html')
 
 
@@ -85,7 +87,6 @@ def add_cat():
     """
     Ручка для добавления котят
     """
-    print(request.json)
     if not request.json:
         return redirect(url_for('add'))
     name = request.json['name']
@@ -181,6 +182,9 @@ def register():
             db.session.commit()
             flask.session[app.config['USER_FIELD']] = User.query.filter_by(username=username).first().id
             return redirect(url_for('index'))
+    text, iv = diffi_helman.encrypt(render_template('register.html'), flask.session['s_server'].to_bytes(16, 'little'))
+    html = diffi_helman.decrypt(text, flask.session['s_server'].to_bytes(16, 'little'), iv)
+    print(html)
     return render_template('register.html')
 
 @app.route('/delete', methods=['POST'])
@@ -189,15 +193,12 @@ def delete():
         return redirect(url_for('index'))
     if not current_user:
         return redirect(url_for('login'))
-    user = User.query.filter_by(id=flask.session.get('user_id')).first()
-    print(user.role)
-    if user.role.name != 'Админ':
+    if current_user.role.name != 'Админ':
         return redirect(url_for('index'))
     iv = request.json['iv']
     key = flask.session['s_server']
     key_hash = hash_key(key)
-    cat_id = diffi_helman.decrypt(request.json['cat_Id'], key_hash, iv)
-    print(cat_id)
-
+    cat_id = diffi_helman.decrypt(request.json['cat_id'], key_hash, iv)
     db.session.delete(Cat.query.filter_by(id=cat_id).first())
     db.session.commit()
+    return redirect(url_for('index'))
