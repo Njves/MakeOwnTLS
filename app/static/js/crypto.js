@@ -1,3 +1,4 @@
+
 B = 0
 key = localStorage.getItem('key')
 if (key) {
@@ -75,6 +76,30 @@ function fetchData() {
 if(!key) {
     fetchData()
 }
+
+async function getView(endpoint) {
+    const response = await fetch(endpoint, {
+            method: 'GET'
+        }
+    )
+    json = await response.json()
+    html = base64ToArrayBuffer(json['html'])
+    iv = base64ToArrayBuffer(json['iv'])
+    let {key, _} = await convertKey(S_Client)
+    let page = await decrypt(html, key, iv)
+    document.write(page)
+}
+
+function base64ToArrayBuffer(base64) {
+    const binaryString = window.atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
 async function processForm() {
     event.preventDefault()
     username = document.forms[0].username.value
@@ -82,7 +107,6 @@ async function processForm() {
     error_field = document.getElementById('error')
     validate_fields(username, password, error_field)
     let {key, iv} = await convertKey(S_Client);
-    console.log(key)
     let encryptedName = await encrypt(username, key, iv);
     let encryptedPassword = await encrypt(password, key, iv);
     let data = {
@@ -90,18 +114,15 @@ async function processForm() {
         username: encryptedName,
         password: encryptedPassword
     };
-    console.log(JSON.stringify(data))
     const response = await fetch('/login', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            },
+        },
         body: JSON.stringify(data)
     })
     const responseData = await response
     showError(error_field, responseData.status, responseData.url)
-
-
 }
 async function convertKey(secretKey){
     const encoder = new TextEncoder();
@@ -118,9 +139,28 @@ async function convertKey(secretKey){
     );
 
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    console.log(key)
     return {key, iv};
 }
+
+async function decrypt(text, key, iv){
+    // Decode the Base64 string back into an ArrayBuffer
+    const encryptedData = new Uint8Array(text);
+
+    // Separate the encrypted data and the tag
+    // Decrypt the data
+    const decryptedData = await window.crypto.subtle.decrypt(
+        {
+            name: 'AES-GCM',
+            iv: iv,
+        },
+        key,
+        encryptedData.buffer
+    );
+
+    const decoded = new TextDecoder().decode(decryptedData);
+    return decoded;
+}
+
 async function encrypt(text, key, iv) {
     // The data to encrypt
     const data = new TextEncoder().encode(text);
@@ -136,7 +176,6 @@ async function encrypt(text, key, iv) {
     );
     // Convert the encrypted data (including the tag) to a Base64 string
     const encryptedDataArray = new Uint8Array(encryptedData);
-    console.log(encryptedDataArray)
     return btoa(String.fromCharCode.apply(null, encryptedDataArray));
 }
 
@@ -148,7 +187,6 @@ async function register(event) {
     error_field = document.getElementById('error')
     validate_fields(username, password, error_field)
     let {key, iv} = await convertKey(S_Client);
-    console.log(key)
     let encryptedName = await encrypt(username, key, iv);
     let encryptedPassword = await encrypt(password, key, iv);
     let encryptedAdmin = await encrypt(has_admin, key, iv);
@@ -158,7 +196,6 @@ async function register(event) {
         password: encryptedPassword,
         has_admin: encryptedAdmin
     };
-    console.log(JSON.stringify(data))
     const response = await fetch('/register', {
         method: 'POST',
         headers: {

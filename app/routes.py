@@ -9,6 +9,7 @@ from main import app
 
 current_user = LocalProxy(lambda: User.query.filter_by(id=flask.session.get('user_id')).first())
 
+
 @app.before_request
 def make_session_permanent():
     global current_user
@@ -22,6 +23,7 @@ def make_session_permanent():
 
     flask.session.get('user_id')
     flask.session.permanent = True
+
 
 @app.route('/get', methods=['GET'])
 def get_g_and_p():
@@ -61,13 +63,27 @@ def send_key():
     return jsonify({'B': B})
 
 
+def encrypt_view(template):
+    cipher, iv = diffi_helman.encrypt(template, hash_key(flask.session['s_server']))
+    return jsonify({'html': cipher, 'iv': iv})
+
+
+@app.route('/cipher', methods=['GET'])
+def index_cipher():
+    """
+    Главная страница
+    """
+    cats = Cat.query.all()
+    return encrypt_view(render_template('index.html', cats=cats))
+
 @app.route('/', methods=['GET'])
 def index():
     """
     Главная страница
     """
-    cats = Cat.query.all()
-    return render_template('index.html', cats=cats)
+    return render_template('index_cipher.html')
+
+
 
 
 @app.route('/add', methods=['GET'])
@@ -77,9 +93,17 @@ def add():
     """
     if not flask.session.get(app.config['USER_FIELD']):
         return redirect(url_for('login'))
-    cipher, iv = diffi_helman.encrypt(render_template('insert.html'), hash_key(flask.session['s_server']))
+    return render_template('add_cipher.html')
 
-    return render_template('insert.html')
+
+@app.route('/add_cipher', methods=['GET'])
+def add_cipher():
+    """
+    Форма добавления котят
+    """
+    if not flask.session.get(app.config['USER_FIELD']):
+        return redirect(url_for('login'))
+    return encrypt_view(render_template('insert.html'))
 
 
 @app.route('/add', methods=['POST'])
@@ -107,7 +131,7 @@ def add_cat():
         db.session.add(cat)
         db.session.commit()
         return redirect(url_for('index'))
-    return render_template('insert.html')
+    return redirect(url_for('add'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -141,11 +165,13 @@ def login():
             return redirect(url_for('index'))
     return render_template('login.html')
 
+
 @app.route('/logout', methods=['GET'])
 def logout():
     if flask.session.get(app.config['USER_FIELD']):
         flask.session.pop(app.config['USER_FIELD'])
     return redirect(url_for('index'))
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -186,6 +212,7 @@ def register():
     html = diffi_helman.decrypt(text, flask.session['s_server'].to_bytes(16, 'little'), iv)
     print(html)
     return render_template('register.html')
+
 
 @app.route('/delete', methods=['POST'])
 def delete():
